@@ -46,69 +46,55 @@ footer{max-width:1400px;margin:0 auto;padding:0 18px 22px;color:#76909c;font-siz
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-const THREE = window.THREE;
-if(!THREE){throw new Error('Three.js failed to load. Check your internet connection and reload.')}
-const OrbitControls = THREE.OrbitControls;
-if(!OrbitControls){throw new Error('OrbitControls failed to load. Reload the page.')}
-const stage=document.querySelector('.stage');
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x08131c);scene.fog=new THREE.Fog(0x08131c,18,38);
+const THREE=window.THREE,OrbitControls=THREE.OrbitControls,stage=document.querySelector('.stage');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x08131c);scene.fog=new THREE.Fog(0x08131c,20,42);
 const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(10,8,13);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.appendChild(renderer.domElement);
-const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1,0);controls.minDistance=6;controls.maxDistance=28;
-scene.add(new THREE.HemisphereLight(0xbdeeff,0x17212b,2));
-const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(7,12,8);scene.add(key);
-const rim=new THREE.PointLight(0x35ddea,35,25);rim.position.set(-7,4,-5);scene.add(rim);
-const mat=(color,metalness=.5,roughness=.35)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;stage.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,.6,0);controls.minDistance=6;controls.maxDistance=28;
+scene.add(new THREE.HemisphereLight(0xbdeeff,0x17212b,2));const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(7,12,8);scene.add(key);const rim=new THREE.PointLight(0x35ddea,35,25);rim.position.set(-7,4,-5);scene.add(rim);
+const mat=(c,m=.5,r=.35)=>new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});
 const alloy=mat(0x82939c,.85,.28),dark=mat(0x263943,.7,.4),cyan=mat(0x20c9d7,.65,.25),orange=mat(0xe58b3c,.6,.3),black=mat(0x101820,.3,.5);
-const engine=new THREE.Group();scene.add(engine);
-function box(parent,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);parent.add(o);return o}
-function cyl(parent,r1,r2,len,m,x,y,z,rotX=0,rotZ=0){const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,24),m);o.position.set(x,y,z);o.rotation.set(rotX,0,rotZ);parent.add(o);return o}
-function rod(parent,a,b,r,m){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),v=B.clone().sub(A);const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,v.length(),12),m);o.position.copy(A.add(B).multiplyScalar(.5));o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());parent.add(o);return o}
-box(engine,3.8,.65,2.1,dark,0,.1,0);
-box(engine,3.45,.24,1.7,alloy,0,.52,0);
-const crank=new THREE.Group();engine.add(crank);
-cyl(crank,.2,.2,4.3,alloy,0,.1,0,Math.PI/2);
-const pistons=[];
-const bankAngle=Math.PI/6;
-for(let bank of [-1,1]){
- const bankGroup=new THREE.Group();bankGroup.rotation.z=bank*bankAngle;bankGroup.position.set(0,.8,0);engine.add(bankGroup);
- box(bankGroup,3.7,1.55,.92,alloy,0,.85,bank*1.12);
- box(bankGroup,3.55,.16,1.02,dark,0,1.68,bank*1.12);
- for(let i=0;i<6;i++){
-  const x=(i-2.5)*.61,z=bank*1.12;
-  cyl(bankGroup,.235,.235,1.08,black,x,1.12,z,Math.PI/2);
-  const piston=new THREE.Group();piston.position.set(x,.85,z);bankGroup.add(piston);
-  cyl(piston,.205,.205,.28,cyan,0,0,0,Math.PI/2);
-  box(piston,.31,.12,.34,alloy,0,-.16,0);
-  const pin=cyl(piston,.07,.07,.4,orange,0,-.01,0,Math.PI/2);
-  const conrod=rod(bankGroup,[x,.65,z],[x,.02,0],.065,orange);
-  pistons.push({piston,conrod,x,bank,i});
-  // Intake runners and small valve covers
-  cyl(bankGroup,.085,.085,.42,cyan,x,1.85,z+bank*.22,Math.PI/2);
- }
- box(bankGroup,3.8,.16,.98,black,0,2.05,bank*1.12);
+const engine=new THREE.Group();scene.add(engine),Y=new THREE.Vector3(0,1,0);
+function box(p,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);p.add(o);return o}
+function cylinder(p,r,len,m,pos,q){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24),m);o.position.copy(pos);if(q)o.quaternion.copy(q);p.add(o);return o}
+function between(o,a,b){const v=b.clone().sub(a);o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(Y,v.clone().normalize());o.scale.y=v.length()}
+box(engine,4.45,.72,1.55,dark,0,-.05,0);box(engine,4.2,.18,1.38,alloy,0,.39,0);
+cylinder(engine,.13,4.65,alloy,new THREE.Vector3(0,0,0),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/2));
+const dirs=[new THREE.Vector3(0,.5,Math.sqrt(3)/2),new THREE.Vector3(0,-.5,Math.sqrt(3)/2)],radius=.39,rodLength=1.43;
+const offsets=[0,2*Math.PI/3,4*Math.PI/3,4*Math.PI/3,2*Math.PI/3,0],throws=[];
+for(let i=0;i<6;i++){const x=(i-2.5)*.68,g=new THREE.Group();g.position.x=x;engine.add(g);
+ for(const sx of [-.13,.13]){const web=box(g,.12,.68,.14,alloy,sx,0,0);web.rotation.x=.2}
+ cylinder(g,.105,.42,orange,new THREE.Vector3(0,radius,0),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/2));
+ throws.push({x,offset:offsets[i],group:g,rods:[]});
 }
-for(let i=0;i<6;i++){const x=(i-2.5)*.61;cyl(crank,.11,.11,.28,orange,x,.1,0,Math.PI/2);rod(crank,[x,.1,0],[x,.42,.0],.045,alloy)}
-// Intake plenum, throttle body and end accessories
-box(engine,2.2,.48,.72,cyan,0,2.55,0);
-cyl(engine,.34,.34,.8,alloy,0,2.55,.72,Math.PI/2);
-cyl(engine,.22,.22,.18,black,0,2.55,1.2,Math.PI/2);
-for(let side of [-1,1]){box(engine,.65,.35,.5,dark,side*2,.45,0);cyl(engine,.18,.18,.5,orange,side*2,.45,.35,Math.PI/2)}
-// Floor grid
-const grid=new THREE.GridHelper(24,24,0x24515c,0x17313c);grid.position.y=-.42;scene.add(grid);
-const floor=new THREE.Mesh(new THREE.CircleGeometry(12,64),new THREE.MeshBasicMaterial({color:0x08131c,transparent:true,opacity:.28}));floor.rotation.x=-Math.PI/2;floor.position.y=-.44;scene.add(floor);
-let running=true,wire=false,rpm=900,phase=0;
-function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)}
-if(window.ResizeObserver){new ResizeObserver(resize).observe(stage)}else{window.addEventListener('resize',resize)}resize();
+for(let b=0;b<2;b++){const d=dirs[b],q=new THREE.Quaternion().setFromUnitVectors(Y,d);
+ for(let i=0;i<6;i++){const x=(i-2.5)*.68+(b===0?-.11:.11),center=d.clone().multiplyScalar(1.28);
+ cylinder(engine,.29,1.58,dark,new THREE.Vector3(x,center.y,center.z),q);
+ cylinder(engine,.235,1.61,alloy,new THREE.Vector3(x,center.y,center.z),q);
+ const piston=new THREE.Group();piston.quaternion.copy(q);engine.add(piston);
+ cylinder(piston,.215,.24,cyan,new THREE.Vector3(0,0,0),null);
+ cylinder(piston,.19,.32,alloy,new THREE.Vector3(0,-.24,0),null);
+ for(let n=0;n<2;n++)cylinder(piston,.22,.025,black,new THREE.Vector3(0,-.07-n*.045,0),null);
+ const rod=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,1,14),orange);engine.add(rod);
+ const cap1=new THREE.Mesh(new THREE.TorusGeometry(.13,.035,8,20),alloy),cap2=new THREE.Mesh(new THREE.TorusGeometry(.085,.028,8,20),alloy);engine.add(cap1,cap2);
+ throws[i].rods.push({d,x,piston,rod,cap1,cap2});
+ cylinder(engine,.055,.38,orange,center.clone().add(d.clone().multiplyScalar(.9)),q);
+ }}
+for(let b=0;b<2;b++){const d=dirs[b],c=d.clone().multiplyScalar(2.12),h=box(engine,4.35,.28,.72,alloy,0,c.y,c.z);h.quaternion.setFromUnitVectors(Y,d);
+ const cover=box(engine,4.15,.13,.58,black,0,c.y+d.y*.19,c.z+d.z*.19);cover.quaternion.setFromUnitVectors(Y,d)}
+box(engine,2.5,.38,.78,cyan,0,2.35,0);
+const grid=new THREE.GridHelper(24,24,0x24515c,0x17313c);grid.position.y=-1.05;scene.add(grid);
+let running=true,wire=false,rpm=900,phase=0;function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)}new ResizeObserver(resize).observe(stage);resize();
 const clock=new THREE.Clock();
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running)phase+=(rpm/60)*Math.PI*2*dt;
-pistons.forEach(({piston,conrod,x,bank,i})=>{const a=phase+i*Math.PI/3+(bank===1?Math.PI:0);const travel=.25*Math.cos(a);piston.position.y=.85+travel;conrod.position.y=.32+travel*.5;conrod.rotation.z=Math.sin(a)*.22});
-controls.update();renderer.render(scene,camera)}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running)phase+=rpm/60*Math.PI*2*dt;
+ throws.forEach(t=>{const a=phase+t.offset,cp=new THREE.Vector3(t.x,radius*Math.cos(a),radius*Math.sin(a));t.group.rotation.x=a;
+ t.rods.forEach(({d,x,piston,rod,cap1,cap2})=>{const proj=cp.dot(d),perp=cp.lengthSq()-proj*proj,s=proj+Math.sqrt(Math.max(.01,rodLength*rodLength-perp));
+ const wrist=new THREE.Vector3(x,d.y*s,d.z*s),big=new THREE.Vector3(x,cp.y,cp.z);piston.position.copy(wrist);between(rod,big,wrist);cap1.position.copy(big);cap2.position.copy(wrist);cap1.quaternion.copy(rod.quaternion);cap2.quaternion.copy(rod.quaternion);
+ });});controls.update();renderer.render(scene,camera)}
 animate();
-document.querySelector('#loadState').textContent='3D ENGINE READY';
 document.querySelector('#rpm').addEventListener('input',e=>{rpm=+e.target.value;document.querySelector('#rpmVal').textContent=rpm.toLocaleString()+' RPM'});
 document.querySelector('#toggle').addEventListener('click',e=>{running=!running;e.target.textContent=running?'Pause motion':'Resume motion';e.target.classList.toggle('active',running)});
-document.querySelector('#reset').addEventListener('click',()=>{camera.position.set(10,8,13);controls.target.set(0,1,0);controls.update()});
+document.querySelector('#reset').addEventListener('click',()=>{camera.position.set(10,8,13);controls.target.set(0,.6,0);controls.update()});
 document.querySelector('#wire').addEventListener('click',e=>{wire=!wire;[alloy,dark,cyan,orange,black].forEach(m=>m.wireframe=wire);e.target.classList.toggle('active',wire)});
 </script>
 </body></html>
