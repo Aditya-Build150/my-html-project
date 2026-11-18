@@ -43,12 +43,11 @@ footer{max-width:1400px;margin:0 auto;padding:0 18px 22px;color:#76909c;font-siz
 </aside>
 </main>
 <footer>V12 ENGINE LAB · Built as a browser-based 3D learning project.</footer>
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
-</script>
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+<script>
+const THREE = window.THREE;
+const OrbitControls = THREE.OrbitControls;
 const stage=document.querySelector('.stage');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x08131c);scene.fog=new THREE.Fog(0x08131c,18,38);
 const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(10,8,13);
