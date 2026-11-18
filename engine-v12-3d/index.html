@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071018">
+<title>V12 Engine Lab — 3D Explorer</title>
+<style>
+:root{color-scheme:dark;--bg:#071018;--panel:#0d1b25;--line:#1d3a49;--cyan:#48e5ef;--muted:#91aab6}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 35%,#102b38 0,#071018 65%);color:#eafaff;font:14px/1.5 system-ui,Segoe UI,sans-serif;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;letter-spacing:.16em}.brand span{color:var(--cyan)}.sub{color:var(--muted);font-size:11px;letter-spacing:.12em}
+main{max-width:1400px;margin:auto;padding:18px;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px}
+.stage{height:min(72vh,720px);min-height:420px;position:relative;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:linear-gradient(145deg,#0b1b26,#061018)}
+canvas{display:block;width:100%;height:100%}.hint{position:absolute;left:16px;bottom:14px;color:#a9c3ce;font-size:12px;pointer-events:none}
+.tag{position:absolute;top:14px;left:16px;color:var(--cyan);font-size:11px;letter-spacing:.14em}
+.panel{background:linear-gradient(160deg,#10222d,#0a151e);border:1px solid var(--line);border-radius:16px;padding:18px}
+h1{font-size:clamp(22px,3vw,34px);line-height:1.05;margin:0 0 8px}.lead{color:var(--muted);margin:0 0 20px}
+.stat{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1b3440}.stat b{color:var(--cyan);font-variant-numeric:tabular-nums}
+label{display:block;margin:20px 0 8px;color:#b8cbd3}input{width:100%;accent-color:var(--cyan)}
+button{border:1px solid #28606d;background:#102d38;color:#eaffff;border-radius:9px;padding:10px 13px;cursor:pointer;font-weight:650}button:hover,button.active{border-color:var(--cyan);background:#16404b}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.note{font-size:12px;color:var(--muted);margin-top:18px}
+footer{max-width:1400px;margin:0 auto;padding:0 18px 22px;color:#76909c;font-size:11px}
+@media(max-width:850px){main{grid-template-columns:1fr}.stage{height:55vh;min-height:360px}.panel{order:2}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">ENGINE<span>/</span>LAB</div><div class="sub">INTERACTIVE MECHANICAL EXPLORER</div></div><div class="sub">V12 • 60° CONFIGURATION • 3D MODEL</div></header>
+<main>
+<section class="stage" aria-label="Interactive 3D V12 engine">
+<div class="tag">LIVE 3D VIEW // CONCEPT MODEL</div><div class="hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
+</section>
+<aside class="panel">
+<h1>V12 Engine</h1><p class="lead">Explore a twelve-cylinder engine layout in 3D.</p>
+<div class="stat"><span>Configuration</span><b>V12</b></div>
+<div class="stat"><span>Cylinder banks</span><b>2 × 6</b></div>
+<div class="stat"><span>Bank angle</span><b>60°</b></div>
+<div class="stat"><span>Firing cycle</span><b>720°</b></div>
+<label for="rpm">Simulation speed <b id="rpmVal">900 RPM</b></label>
+<input id="rpm" type="range" min="0" max="6000" step="100" value="900">
+<div class="controls"><button id="toggle" class="active">Pause motion</button><button id="reset">Reset view</button><button id="wire">Wireframe</button></div>
+<p class="note">This is an educational, stylized 3D visualization—not a manufacturer CAD model. Cylinder and crank motion are simplified for learning.</p>
+</aside>
+</main>
+<footer>V12 ENGINE LAB · Built as a browser-based 3D learning project.</footer>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+const stage=document.querySelector('.stage');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x08131c);scene.fog=new THREE.Fog(0x08131c,18,38);
+const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(10,8,13);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1,0);controls.minDistance=6;controls.maxDistance=28;
+scene.add(new THREE.HemisphereLight(0xbdeeff,0x17212b,2));
+const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(7,12,8);scene.add(key);
+const rim=new THREE.PointLight(0x35ddea,35,25);rim.position.set(-7,4,-5);scene.add(rim);
+const mat=(color,metalness=.5,roughness=.35)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
+const alloy=mat(0x82939c,.85,.28),dark=mat(0x263943,.7,.4),cyan=mat(0x20c9d7,.65,.25),orange=mat(0xe58b3c,.6,.3),black=mat(0x101820,.3,.5);
+const engine=new THREE.Group();scene.add(engine);
+function box(parent,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);parent.add(o);return o}
+function cyl(parent,r1,r2,len,m,x,y,z,rotX=0,rotZ=0){const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,24),m);o.position.set(x,y,z);o.rotation.set(rotX,0,rotZ);parent.add(o);return o}
+function rod(parent,a,b,r,m){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),v=B.clone().sub(A);const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,v.length(),12),m);o.position.copy(A.add(B).multiplyScalar(.5));o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());parent.add(o);return o}
+box(engine,3.8,.65,2.1,dark,0,.1,0);
+box(engine,3.45,.24,1.7,alloy,0,.52,0);
+const crank=new THREE.Group();engine.add(crank);
+cyl(crank,.2,.2,4.3,alloy,0,.1,0,Math.PI/2);
+const pistons=[];
+const bankAngle=Math.PI/6;
+for(let bank of [-1,1]){
+ const bankGroup=new THREE.Group();bankGroup.rotation.z=bank*bankAngle;bankGroup.position.set(0,.8,0);engine.add(bankGroup);
+ box(bankGroup,3.7,1.55,.92,alloy,0,.85,bank*1.12);
+ box(bankGroup,3.55,.16,1.02,dark,0,1.68,bank*1.12);
+ for(let i=0;i<6;i++){
+  const x=(i-2.5)*.61,z=bank*1.12;
+  cyl(bankGroup,.235,.235,1.08,black,x,1.12,z,Math.PI/2);
+  const piston=new THREE.Group();piston.position.set(x,.85,z);bankGroup.add(piston);
+  cyl(piston,.205,.205,.28,cyan,0,0,0,Math.PI/2);
+  box(piston,.31,.12,.34,alloy,0,-.16,0);
+  const pin=cyl(piston,.07,.07,.4,orange,0,-.01,0,Math.PI/2);
+  const conrod=rod(bankGroup,[x,.65,z],[x,.02,0],.065,orange);
+  pistons.push({piston,conrod,x,bank,i});
+  // Intake runners and small valve covers
+  cyl(bankGroup,.085,.085,.42,cyan,x,1.85,z+bank*.22,Math.PI/2);
+ }
+ box(bankGroup,3.8,.16,.98,black,0,2.05,bank*1.12);
+}
+for(let i=0;i<6;i++){const x=(i-2.5)*.61;cyl(crank,.11,.11,.28,orange,x,.1,0,Math.PI/2);rod(crank,[x,.1,0],[x,.42,.0],.045,alloy)}
+// Intake plenum, throttle body and end accessories
+box(engine,2.2,.48,.72,cyan,0,2.55,0);
+cyl(engine,.34,.34,.8,alloy,0,2.55,.72,Math.PI/2);
+cyl(engine,.22,.22,.18,black,0,2.55,1.2,Math.PI/2);
+for(let side of [-1,1]){box(engine,.65,.35,.5,dark,side*2,.45,0);cyl(engine,.18,.18,.5,orange,side*2,.45,.35,Math.PI/2)}
+// Floor grid
+const grid=new THREE.GridHelper(24,24,0x24515c,0x17313c);grid.position.y=-.42;scene.add(grid);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(12,64),new THREE.MeshBasicMaterial({color:0x08131c,transparent:true,opacity:.28}));floor.rotation.x=-Math.PI/2;floor.position.y=-.44;scene.add(floor);
+let running=true,wire=false,rpm=900,phase=0;
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)}
+new ResizeObserver(resize).observe(stage);resize();
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running)phase+=(rpm/60)*Math.PI*2*dt;
+pistons.forEach(({piston,conrod,x,bank,i})=>{const a=phase+i*Math.PI/3+(bank===1?Math.PI:0);const travel=.25*Math.cos(a);piston.position.y=.85+travel;conrod.position.y=.32+travel*.5;conrod.rotation.z=Math.sin(a)*.22});
+controls.update();renderer.render(scene,camera)}
+animate();
+document.querySelector('#rpm').addEventListener('input',e=>{rpm=+e.target.value;document.querySelector('#rpmVal').textContent=rpm.toLocaleString()+' RPM'});
+document.querySelector('#toggle').addEventListener('click',e=>{running=!running;e.target.textContent=running?'Pause motion':'Resume motion';e.target.classList.toggle('active',running)});
+document.querySelector('#reset').addEventListener('click',()=>{camera.position.set(10,8,13);controls.target.set(0,1,0);controls.update()});
+document.querySelector('#wire').addEventListener('click',e=>{wire=!wire;[alloy,dark,cyan,orange,black].forEach(m=>m.wireframe=wire);e.target.classList.toggle('active',wire)});
+</script>
+</body></html>
