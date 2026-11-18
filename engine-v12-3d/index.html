@@ -28,7 +28,7 @@ footer{max-width:1400px;margin:0 auto;padding:0 18px 22px;color:#76909c;font-siz
 <header><div><div class="brand">ENGINE<span>/</span>LAB</div><div class="sub">INTERACTIVE MECHANICAL EXPLORER</div></div><div class="sub">V12 • 60° CONFIGURATION • 3D MODEL</div></header>
 <main>
 <section class="stage" aria-label="Interactive 3D V12 engine">
-<div class="tag">LIVE 3D VIEW // CONCEPT MODEL</div><div class="hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
+<div class="tag">LIVE 3D VIEW // CONCEPT MODEL</div><div id="loadState" style="position:absolute;right:14px;top:12px;color:#48e5ef;font-size:11px;z-index:2">3D ENGINE INITIALIZING…</div><div class="hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div>
 </section>
 <aside class="panel">
 <h1>V12 Engine</h1><p class="lead">Explore a twelve-cylinder engine layout in 3D.</p>
@@ -43,15 +43,17 @@ footer{max-width:1400px;margin:0 auto;padding:0 18px 22px;color:#76909c;font-siz
 </aside>
 </main>
 <footer>V12 ENGINE LAB · Built as a browser-based 3D learning project.</footer>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 const THREE = window.THREE;
+if(!THREE){throw new Error('Three.js failed to load. Check your internet connection and reload.')}
 const OrbitControls = THREE.OrbitControls;
+if(!OrbitControls){throw new Error('OrbitControls failed to load. Reload the page.')}
 const stage=document.querySelector('.stage');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x08131c);scene.fog=new THREE.Fog(0x08131c,18,38);
 const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(10,8,13);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.appendChild(renderer.domElement);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.appendChild(renderer.domElement);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1,0);controls.minDistance=6;controls.maxDistance=28;
 scene.add(new THREE.HemisphereLight(0xbdeeff,0x17212b,2));
 const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(7,12,8);scene.add(key);
@@ -97,12 +99,13 @@ const grid=new THREE.GridHelper(24,24,0x24515c,0x17313c);grid.position.y=-.42;sc
 const floor=new THREE.Mesh(new THREE.CircleGeometry(12,64),new THREE.MeshBasicMaterial({color:0x08131c,transparent:true,opacity:.28}));floor.rotation.x=-Math.PI/2;floor.position.y=-.44;scene.add(floor);
 let running=true,wire=false,rpm=900,phase=0;
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)}
-new ResizeObserver(resize).observe(stage);resize();
+if(window.ResizeObserver){new ResizeObserver(resize).observe(stage)}else{window.addEventListener('resize',resize)}resize();
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running)phase+=(rpm/60)*Math.PI*2*dt;
 pistons.forEach(({piston,conrod,x,bank,i})=>{const a=phase+i*Math.PI/3+(bank===1?Math.PI:0);const travel=.25*Math.cos(a);piston.position.y=.85+travel;conrod.position.y=.32+travel*.5;conrod.rotation.z=Math.sin(a)*.22});
 controls.update();renderer.render(scene,camera)}
 animate();
+document.querySelector('#loadState').textContent='3D ENGINE READY';
 document.querySelector('#rpm').addEventListener('input',e=>{rpm=+e.target.value;document.querySelector('#rpmVal').textContent=rpm.toLocaleString()+' RPM'});
 document.querySelector('#toggle').addEventListener('click',e=>{running=!running;e.target.textContent=running?'Pause motion':'Resume motion';e.target.classList.toggle('active',running)});
 document.querySelector('#reset').addEventListener('click',()=>{camera.position.set(10,8,13);controls.target.set(0,1,0);controls.update()});
