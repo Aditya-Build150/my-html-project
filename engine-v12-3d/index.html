@@ -88,8 +88,8 @@ let running=true,wire=false,rpm=900,phase=0;function resize(){const w=stage.clie
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running)phase+=rpm/60*Math.PI*2*dt;
  throws.forEach(t=>{const a=phase+t.offset,cp=new THREE.Vector3(t.x,radius*Math.cos(a),radius*Math.sin(a));t.group.rotation.x=a;
- t.rods.forEach(({d,x,piston,rod,cap1,cap2})=>{const proj=cp.dot(d),perp=cp.lengthSq()-proj*proj,s=proj+Math.sqrt(Math.max(.01,rodLength*rodLength-perp));
- const wrist=new THREE.Vector3(x,d.y*s,d.z*s),big=new THREE.Vector3(x,cp.y,cp.z);piston.position.copy(wrist);between(rod,big,wrist);cap1.position.copy(big);cap2.position.copy(wrist);cap1.quaternion.copy(rod.quaternion);cap2.quaternion.copy(rod.quaternion);
+ t.rods.forEach(({d,x,piston,rod,cap1,cap2})=>{const big=new THREE.Vector3(x,cp.y,cp.z),proj=big.dot(d),perp=big.lengthSq()-proj*proj,s=proj+Math.sqrt(Math.max(.01,rodLength*rodLength-perp));
+ const wrist=new THREE.Vector3(x,d.y*s,d.z*s);piston.position.copy(wrist);between(rod,big,wrist);cap1.position.copy(big);cap2.position.copy(wrist);cap1.quaternion.copy(rod.quaternion);cap2.quaternion.copy(rod.quaternion);
  });});controls.update();renderer.render(scene,camera)}
 animate();
 document.querySelector('#rpm').addEventListener('input',e=>{rpm=+e.target.value;document.querySelector('#rpmVal').textContent=rpm.toLocaleString()+' RPM'});
